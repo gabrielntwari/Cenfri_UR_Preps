@@ -9,9 +9,13 @@ library(caret)
 #library(FSelector)
 library(corrplot)
 library(ggcorrplot)
-#https://github.com/business-science/free_r_tips/blob/master/049_modelstudio/049_modelstudio.R
-#Source:https://rviews.rstudio.com/2019/06/19/a-gentle-intro-to-tidymodels/
-#https://github.com/business-science/free_r_tips/blob/master/052_modeldown/052_modeldown.R
+library(ggside)
+library(tidyquant)
+library(DataExplorer)
+library(explore)
+library(randomForest)
+#________________________________________________
+#Importing the data
 tbl_crops <- rio::import(here::here("data/tbl_ML.csv"))
 tbl <- tbl_crops %>%
   clean_names() %>%
@@ -19,6 +23,17 @@ tbl <- tbl_crops %>%
   mutate(production = round(log(production), digits = 2),
          arable_size = round(log(arable_size), digits = 2))
 
+#_______________Data Exploration
+
+# create automatic report 
+create_report(tbl_crops)
+#Plot correlation
+plot_correlation(tbl_crops %>% select_if(is.numeric))
+
+# explore interactively shiny app for data exploration
+explore(tbl_crops)
+
+#_____________________________________
 #Data pre-processing and feature engineering
 
 #MULTICOLLINEARITY TESTING THE CORRELATION AMONG VARIABLES
@@ -28,8 +43,6 @@ corr <- cor(tbl[,numericVarName], use = 'pairwise.complete.obs')
 ggcorrplot(corr, lab = TRUE, title = "CORRELATION AMONG CONTINUOUS VARIABLES")
 
 # Automatic selection of impovar (Recursive Feature Elimination)
-
-
 df2 <- tbl %>% select(-c(year, seasons, districts))
 control <- rfeControl(functions = rfFuncs,
                       method = "repeatedcv",
@@ -43,7 +56,6 @@ bcancer_Pred_Profile <- rfe(df2[,predictors], df2[,outcomeName],
                             rfeControl = control)
 print(bcancer_Pred_Profile)
 #_________
-library(randomForest)
 
 attribute.scores <- random.forest.importance(production ~ ., df2)
 attribute.scores
@@ -55,7 +67,7 @@ tbl_ML<-tbl%>%
   dplyr::select(crop_type,arable_size,rainfall,ndvi,atm_pressure,evapo_trans,l_stemp,
                 solar_rad, production)
 #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-#++++++++++++Modelling with caret library
+#++++++++++++ Modelling with caret library
 
 # Get list of all models:
 all_model <- modelLookup()
@@ -82,7 +94,7 @@ your_packages <- installed.packages() %>%
   as.character()
 
 #-----------------------------------
-#  Simultaneously Train 5 Models
+#  Simultaneously Train multiple Models
 #-----------------------------------
 
 # Split data:
@@ -109,15 +121,15 @@ control <- trainControl(method = "repeatedcv",
                         timingSamps = 10,
                         verboseIter = FALSE,
                         allowParallel = TRUE)
-
+#_____________________________________________
 # Use Parallel computing:
 library(doParallel)
 registerDoParallel(cores = detectCores() - 1)
-
+#_______________________________________________
 # Simultaneously train some machine learning models:
 library(caretEnsemble)
 set.seed(12345)
-
+#___________________________________________
 # List all models that you want to train. For purpose of explanation
 # I will only  use 5 models:
 models_to_be_used <- c("knn","rpart","svmLinear2","glm","xgbLinear",
@@ -217,8 +229,7 @@ xgblinear_ <- train(production ~.,
                    method = "xgbLinear")
 
 pred_tbl <- xgblinear_$pred %>% select(5:6)
-library(ggside)
-library(tidyquant)
+
 p2<- pred_tbl %>%
   ggplot(aes(pred, obs)) +
   geom_point(size = 2, alpha = 0.3, colour = "#AB892C") +
@@ -238,23 +249,12 @@ p2<- pred_tbl %>%
 
 plot(p2)
 
-
 library(ggpubr)
-
 plot(p2)
-
-
-
 xgb_model$results  #turn the result
 xgb_model$bestTune #Select the best model
 xgb_model$finalModel %>% broom::tidy()
 predict(gbmFit1, newdata = head(testing), type = "prob")
-
-
-
-
-
-
 
 #Compare the winning models
 
