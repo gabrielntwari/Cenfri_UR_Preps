@@ -30,9 +30,6 @@ create_report(tbl_crops)
 #Plot correlation
 plot_correlation(tbl_crops %>% select_if(is.numeric))
 
-# explore interactively shiny app for data exploration
-explore(tbl_crops)
-
 #_____________________________________
 #Data pre-processing and feature engineering
 
@@ -268,32 +265,3 @@ compare_models(glm_model,xgb_model)
 #It is seen that they difference is statistically significant, i.e each model is independent it can
 #be used independently on the prediction of production
 #
-
-#++++++++++++++INTERACTIVE DASHBOARD OF WINNING MACHINE
-
-# create an explainer for the model
-explainer <- explain(model = glm_model,
-                     data = df_test_ml,
-                     y = df_test_ml$production,
-                     type = "regression",
-                     label = "Generalized Linear")
-
-# make a studio for the model
-modelStudio::modelStudio(explainer)
-
-#_______________Data Exploration
-#
-# load DataExplorer
-library(DataExplorer)
-# create report
-create_report(tbl_crops)
-
-plot_correlation(tbl_crops %>% select_if(is.numeric))
-
-# load package
-library(explore)
-
-# explore interactive
-explore(tbl_crops)
-
-
